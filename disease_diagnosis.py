@@ -65,20 +65,14 @@ def main():
     st.title("Disease Diagnosis App")
 
     # Get symptoms from user input
-    symptoms = st.multiselect("Select your symptoms:", ["Fever", "Cough", "Fatigue", "Body Aches", "Runny Nose", "Sneezing",
-                                                        "Sore Throat", "Shortness of Breath", "Loss of Taste or Smell"
-                                                        "Sneezing", "Runny Nose", "Itchy Eyes"
-                                                        "Shortness of Breath", "Wheezing", "Chest Tightness",
-                                                        "Increased Thirst", "Frequent Urination", "Fatigue",
-                                                        "Chest Pain", "Shortness of Breath", "Fatigue",
-                                                        "Headache", "Nausea", "Sensitivity to Light",
-                                                        "Cough", "Fever", "Shortness of Breath",
-                                                        "Diarrhea", "Nausea", "Abdominal Pain",
-                                                        "Frequent Urination", "Burning Sensation", "Cloudy Urine",
-                                                        "Restlessness", "Worrying", "Difficulty Concentrating",
-                                                        "Persistent Sadness", "Loss of Interest", "Fatigue",
-                                                        "Joint Pain", "Swelling", "Stiffness",
-                                                        "Bone Pain", "Fractures", "Loss of Height",])
+    symptoms = st.multiselect("Select your symptoms:",["Fever", "Cough", "Fatigue", "Body Aches", "Runny Nose",
+                                                       "Sneezing", "Sore Throat", "Shortness of Breath", "Loss of Taste or Smell",
+                                                       "Itchy Eyes", "Wheezing", "Chest Tightness", "Increased Thirst",
+                                                       "Frequent Urination", "Chest Pain", "Headache", "Nausea",
+                                                       "Sensitivity to Light", "Diarrhea", "Abdominal Pain", "Burning Sensation",
+                                                       "Cloudy Urine", "Restlessness", "Worrying", "Difficulty Concentrating",
+                                                       "Persistent Sadness", "Loss of Interest", "Joint Pain", "Swelling", "Stiffness",
+                                                       "Bone Pain", "Fractures", "Loss of Height"])
 
     # Diagnose disease
     if st.button("Diagnose"):
