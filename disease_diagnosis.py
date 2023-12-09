@@ -1,94 +1,96 @@
 import streamlit as st
+import pandas as pd
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Function to get data from Google Sheets
+def get_data_from_sheets():
+    # Set up credentials
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+#Ask for creds file from Musharraf and place it inn the same folder
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('creds.json', scope)
+    gc = gspread.authorize(credentials)
+
+    # Open the Google Sheet using its title
+    sheet = gc.open('Database')
+
+    # Get data from the Diseases sheet
+    diseases_data = sheet.worksheet('Sheet1').get_all_records()
+
+    # Convert the data to a DataFrame
+    diseases_df = pd.DataFrame(diseases_data)
+
+    return diseases_df
 
 
+# Function to diagnose disease
+# Function to diagnose disease
+def diagnose_disease(selected_symptoms, diseases_data):
+    matched_diseases = []
 
+    for index, row in diseases_data.iterrows():
+        disease_name = row['Diseases']
+        disease_symptoms = set(row['Symptoms'].split(', '))
+        
+        matched_symptoms = set(selected_symptoms).intersection(disease_symptoms)
+        num_matched_symptoms = len(matched_symptoms)
 
+        # Only consider diseases with at least 1 matched symptom
+        if num_matched_symptoms > 0:
+            matched_diseases.append((disease_name, num_matched_symptoms, matched_symptoms))
 
+    # Sort the matched diseases based on the number of matched symptoms in descending order
+    matched_diseases.sort(key=lambda x: x[1], reverse=True)
 
-# Example symptoms for diseases
-symptoms = {
-    "Flu": ["Fever", "Cough", "Fatigue", "Body Aches"],
-    "Common Cold": ["Runny Nose", "Sneezing", "Sore Throat"],
-    "COVID-19": ["Fever", "Cough", "Shortness of Breath", "Loss of Taste or Smell"],
-    "Allergies": ["Sneezing", "Runny Nose", "Itchy Eyes"],
-    "Asthma": ["Shortness of Breath", "Wheezing", "Chest Tightness"],
-    "Diabetes": ["Increased Thirst", "Frequent Urination", "Fatigue"],
-    "Heart Disease": ["Chest Pain", "Shortness of Breath", "Fatigue"],
-    "Migraine": ["Headache", "Nausea", "Sensitivity to Light"],
-    "Pneumonia": ["Cough", "Fever", "Shortness of Breath"],
-    "Gastroenteritis": ["Diarrhea", "Nausea", "Abdominal Pain"],
-    "Urinary Tract Infection (UTI)": ["Frequent Urination", "Burning Sensation", "Cloudy Urine"],
-    "Anxiety": ["Restlessness", "Worrying", "Difficulty Concentrating"],
-    "Depression": ["Persistent Sadness", "Loss of Interest", "Fatigue"],
-    "Arthritis": ["Joint Pain", "Swelling", "Stiffness"],
-    "Osteoporosis": ["Bone Pain", "Fractures", "Loss of Height"],
-    # Add more diseases and symptoms as needed
-}
-
-# Disease diagnosis function
-def diagnose_disease(selected_symptoms):
-    matched_diseases = [disease for disease, disease_symptoms in symptoms.items() if set(selected_symptoms).issuperset(set(disease_symptoms))]
     return matched_diseases
 
 
-def diagnose_disease(selected_symptoms):
-    for disease, disease_symptoms in symptoms.items():
-        if set(selected_symptoms).issuperset(set(disease_symptoms)):
-            return [disease]
-    return []
 
-# Precaution measures function
-def get_precaution_measures(disease):
-    # Define precaution measures for each disease (replace with actual measures)
-    precautions = {
-    "Flu": ["Rest", "Stay hydrated", "Take over-the-counter medications"],
-    "Common Cold": ["Rest", "Stay hydrated", "Take over-the-counter medications"],
-    "COVID-19": ["Isolate yourself", "Contact healthcare provider", "Follow public health guidelines"],
-    "Allergies": ["Avoid allergens", "Use air purifiers", "Take antihistamines"],
-    "Asthma": ["Use inhalers as prescribed", "Avoid triggers", "Have an asthma action plan"],
-    "Diabetes": ["Monitor blood sugar levels", "Follow a healthy diet", "Take medications as prescribed"],
-    "Heart Disease": ["Maintain a healthy diet", "Regular exercise", "Take prescribed medications"],
-    "Migraine": ["Identify and avoid triggers", "Manage stress", "Take migraine medications"],
-    "Pneumonia": ["Get vaccinated", "Practice good hygiene", "Take prescribed antibiotics"],
-    "Gastroenteritis": ["Stay hydrated", "Follow a bland diet", "Rest"],
-    "Urinary Tract Infection (UTI)": ["Drink plenty of water", "Take prescribed antibiotics", "Avoid irritants"],
-    "Anxiety": ["Practice relaxation techniques", "Seek therapy", "Stay connected with loved ones"],
-    "Depression": ["Therapy", "Medications", "Regular exercise"],
-    "Arthritis": ["Exercise regularly", "Use joint protection techniques", "Take medications"],
-    "Osteoporosis": ["Calcium and vitamin D supplements", "Weight-bearing exercises", "Medications"],
-    # Add more diseases and precautions as needed
-}
-    return precautions.get(disease, ["Precaution measures not available"])
+# Function to get precaution measures
+def get_precaution_measures(disease, diseases_data):
+    precautions = diseases_data[diseases_data['Diseases'] == disease]['Precautions'].values
+    return ", ".join(precautions) if precautions else "Precaution measures not available"
 
+
+# Streamlit app
 # Streamlit app
 def main():
     st.title("Disease Diagnosis App")
 
+    # Fetch data from Google Sheets
+    diseases_data = get_data_from_sheets()
+
+    # Get unique symptoms from the DataFrame
+    all_symptoms = set(symptom for symptoms_list in diseases_data['Symptoms'].str.split(', ') for symptom in symptoms_list)
+
+
+
     # Get symptoms from user input
-    symptoms = st.multiselect("Select your symptoms:",["Fever", "Cough", "Fatigue", "Body Aches", "Runny Nose",
-                                                       "Sneezing", "Sore Throat", "Shortness of Breath", "Loss of Taste or Smell",
-                                                       "Itchy Eyes", "Wheezing", "Chest Tightness", "Increased Thirst",
-                                                       "Frequent Urination", "Chest Pain", "Headache", "Nausea",
-                                                       "Sensitivity to Light", "Diarrhea", "Abdominal Pain", "Burning Sensation",
-                                                       "Cloudy Urine", "Restlessness", "Worrying", "Difficulty Concentrating",
-                                                       "Persistent Sadness", "Loss of Interest", "Joint Pain", "Swelling", "Stiffness",
-                                                       "Bone Pain", "Fractures", "Loss of Height"])
+    symptoms = st.multiselect("Select your symptoms:", sorted(all_symptoms))
 
     # Diagnose disease
-    if st.button("Diagnose"):
+    diagnose_button_key = hash("diagnose_button_key")  # Unique key
+    if st.button("Diagnose", key=diagnose_button_key):
         if not symptoms:
             st.warning("Please select at least one symptom.")
         else:
-            matched_diseases = diagnose_disease(symptoms)
+            matched_diseases = diagnose_disease(symptoms, diseases_data)
 
-            # Display diagnosed disease and precautions
+            # Display diagnosed diseases and precautions
             if matched_diseases:
-                disease = matched_diseases[0]
-                st.success(f"Based on your selected symptoms, it could be {disease} as per my database. However for more accurate its always better to consult a doctor")
-                precautions = get_precaution_measures(disease)
-                st.subheader(f"Precaution Measures for {disease}:")
-                for precaution in precautions:
-                    st.write(f"- {precaution}")
+                st.success("Based on your selected symptoms, potential matching diseases are:")
+                for disease, num_matched_symptoms, matched_symptoms in matched_diseases:
+                    if num_matched_symptoms > 0:
+                        precautions = get_precaution_measures(disease, diseases_data)
+                        st.subheader(f"{disease} ({num_matched_symptoms} matched symptoms)")
+                        st.write("Matched Symptoms:")
+                        st.write(", ".join(matched_symptoms))
+                        st.write("Precaution Measures:")
+                        for precaution in precautions.split(', '):
+                            st.write(f"- {precaution}")
+                    else:
+                        st.subheader(f"{disease} (No matched symptoms)")
+                        st.write("Precaution measures not available")
             else:
                 st.info("No specific diseases matched the selected symptoms. If you have concerns, please consult a healthcare professional.")
 
